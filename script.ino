@@ -3,8 +3,8 @@
 #include <WiFiClientSecure.h>
 
 // Definições de pinos
-#define pinDT 2  // Pino de dados do HX711 conectado a D21
-#define pinSCK 4 // Pino de clock do HX711 conectado a D22
+#define pinDT 2  // Pino de dados do HX711 conectado a IO02
+#define pinSCK 4 // Pino de clock do HX711 conectado a IO04
 
 // Definições
 #define pesoMin 0.010
