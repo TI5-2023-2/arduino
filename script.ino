@@ -70,7 +70,7 @@ void enviarMedidaParaAPI(float medida) {
                      "Connection: close\r\n" +
                      "Content-Type: application/json\r\n" +
                      "Content-Length: " + String(measure.length()) + "\r\n\r\n" +
-                     "{\"device_uuid\":\"seu_uuid\", \"weight\":" + String(medida) + "}\r\n";
+                     "{\"device_uuid\":\"seu_uuid\":" +uuid, \"weight\":" + String(medida) + "}\r\n";
 
     client.print(payload);
 
