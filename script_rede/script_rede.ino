@@ -1,10 +1,11 @@
 #include <HX711.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 // Definições de pinos
-#define pinDT 2  // Pino de dados do HX711 conectado a IO02
-#define pinSCK 4 // Pino de clock do HX711 conectado a IO04
+#define pinDT 14  // Pino de dados do HX711 conectado a IO02
+#define pinSCK 27 // Pino de clock do HX711 conectado a IO04
 
 // Definições
 #define pesoMin 0.010
@@ -13,19 +14,20 @@
 
 HX711 scale;
 
-const String uuid = "83b37187-ecf6-45a7-95b3-860792b1ed91";
+const String uuid = "83b37187-ecf6-45a7-95b3-860792b1ed96";
 const String ssid = "matheus";
 const String password = "12345678";
-const String apiHost = "https://fulla-api.vercel.app";  // Host da API
+const String apiHost = "http://fulla-api.vercel.app/";  // Host da API
 const int apiPort = 443;  // Porta padrão para conexões https
-const String weightPath = "/api/v1/device_weight";
-const String deviceIdPath = "/api/v1/device";
+const String weightPath = "api/v1/device_weight"; //enviar peso 
+const String deviceIdPath = "api/v1/device"; //enviar device id
+
 
 
 float medidaAnterior = 0;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(57600);
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -41,64 +43,62 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   cadastraDevice(uuid);
+
   scale.begin(pinDT, pinSCK);
   scale.set_scale(escala);
 
   delay(2000);
   scale.tare();
   Serial.println("Setup Done!");
+  float medida = 15.5;
+  enviarMedidaParaAPI(medida);
 }
 
 void loop() {
+  scale.power_up(); // LIGANDO O SENSOR
   float medida = scale.get_units(5);
+  Serial.println(medida,3);
+  scale.power_down(); // DESLIGANDO O SENSOR
 
-  if (abs(medida - medidaAnterior) > 0.1) {
+  //if (abs(medida - medidaAnterior) > 0.1) {
     // Se a diferença entre a medida atual e a anterior for maior que 0.1, envie para a API
-    enviarMedidaParaAPI(medida);
-    medidaAnterior = medida;
-  }
+    //enviarMedidaParaAPI(medida);
+    //Serial.println("--------------------------------------------------------------------------");
+    //Serial.print("--------------------------------- ");
+    //Serial.print(medida);
+    //Serial.print(" ---------------------------------");
+    //Serial.println("--------------------------------------------------------------------------");
+   // medidaAnterior = medida;
+  //}
 
   delay(1000);
 }
 
 void enviarMedidaParaAPI(float medida) {
+  DynamicJsonDocument payload(1024);
+  payload["device_uuid"] = uuid;
+  payload["weight"] = medida;
   HTTPClient http;
-  if (http.begin(apiHost, apiPort, weightPath)) {
-    Serial.println("Connected to the server");
-
-    String payload = "{\"device_uuid\":\"" + String(uuid) + "\",\"weight\":" + String(medida) + "}";
-    int httpCode = http.POST(payload);
-
-    if (httpCode > 0) {
-      String response = http.getString();
-      Serial.println(response);
-    } else {
-      Serial.println("Error sending data to the server");
-    }
-
-    http.end();
-  } else {
-    Serial.println("Error connecting to the server");
-  }
+  http.begin("https://fulla-api.vercel.app/api/v1/device_weight/"); 
+  http.addHeader("Content-Type", "application/json");
+  String payloadHtppFormat;
+  serializeJson(payload, payloadHtppFormat);
+  Serial.println(payloadHtppFormat);
+  http.POST(payloadHtppFormat);
+  Serial.println(http.getString());
+  http.end();
 }
 
 void cadastraDevice(String uuid) {
+  DynamicJsonDocument payload(1024);
+  payload["device_uuid"] = uuid;
   HTTPClient http;
-  if (http.begin(apiHost, apiPort, deviceIdPath)) {
-    Serial.println("Connected to the server");
-
-    String payload = "{\"device_uuid\":\"" + String(uuid) + "\"}";
-    int httpCode = http.POST(payload);
-
-    if (httpCode > 0) {
-      String response = http.getString();
-      Serial.println(response);
-    } else {
-      Serial.println("Error sending data to the server");
-    }
-
-    http.end();
-  } else {
-    Serial.println("Error connecting to the server");
-  }
+  http.begin("https://fulla-api.vercel.app/api/v1/device/");
+  http.addHeader("Content-Type", "application/json");
+  String payloadHtppFormat;
+  serializeJson(payload, payloadHtppFormat);
+  Serial.println(payloadHtppFormat);
+  http.POST(payloadHtppFormat);
+  Serial.println(http.getString());
+  http.end();
 }
